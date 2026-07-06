@@ -6,6 +6,10 @@ use App\Models\Offence;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
+use App\Models\OffenceImage;
+use Filament\Infolists\Components\ImageEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Illuminate\Support\Facades\URL;
 
 class OffenceInfolist
 {
@@ -77,6 +81,21 @@ class OffenceInfolist
                 TextEntry::make('deleted_at')
                     ->dateTime()
                     ->visible(fn (Offence $record): bool => $record->trashed()),
-            ]);
+            
+            RepeatableEntry::make('images')
+            ->label('Evidence')
+            ->schema([
+                ImageEntry::make('file_path')
+                    ->hiddenLabel()
+                    ->height(240)
+                    ->getStateUsing(fn (OffenceImage $record) => $record->file_path
+                        ? URL::temporarySignedRoute('evidence.show', now()->addMinutes(5), ['image' => $record->id])
+                        : null),
+                TextEntry::make('status')->badge(),
+                TextEntry::make('captured_at')->dateTime(),
+                TextEntry::make('sha256_hash')->label('SHA-256')->limit(16),
+            ])
+            ->columns(4),   
+                 ]);
     }
 }
