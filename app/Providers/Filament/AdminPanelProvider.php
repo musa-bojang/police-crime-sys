@@ -24,6 +24,10 @@ class AdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         return $panel
+        ->brandName('Gambia Police Crime System')
+        ->brandLogo(asset('images/police-logo.png'))
+        ->brandLogoHeight('2.5rem')
+        ->favicon(asset('images/police-logo.png'))
             ->default()
             ->id('admin')
             ->path('admin')

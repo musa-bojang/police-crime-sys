@@ -60,9 +60,10 @@ class OffenceImageController extends Controller
             ], 422);
         }
 
-        // Store on the PRIVATE disk (storage/app/private/...), never public.
+        // Store on the default disk (set by FILESYSTEM_DISK — local in dev,
+        // private S3 in production). Never a public disk.
         $ext  = $file->getClientOriginalExtension() ?: 'jpg';
-        $path = $file->storeAs('evidence/'.$image->offence_id, $image->id.'.'.$ext, 'local');
+        $path = $file->storeAs('evidence/'.$image->offence_id, $image->id.'.'.$ext);
 
         [$width, $height, $thumbPath] = $this->deriveImageExtras($file, $image);
 
@@ -114,7 +115,7 @@ class OffenceImageController extends Controller
             $thumbPath = 'evidence/'.$image->offence_id.'/'.$image->id.'_thumb.jpg';
             ob_start();
             imagejpeg($thumb, null, 80);
-            Storage::disk('local')->put($thumbPath, ob_get_clean());
+            Storage::put($thumbPath, ob_get_clean());
 
             imagedestroy($src);
             imagedestroy($thumb);
