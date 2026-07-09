@@ -22,7 +22,7 @@ class WatchlistVehicleResource extends Resource
 {
     protected static ?string $model = WatchlistVehicle::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    //protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'plate';
 
