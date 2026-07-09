@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OffenceImageController;
 use App\Http\Controllers\Api\OffenceSyncController;
+use App\Http\Controllers\Api\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,4 +25,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/sync/offences', [OffenceSyncController::class, 'push']);
     Route::get('/sync/offences', [OffenceSyncController::class, 'pull']);
     Route::post('/sync/images/{image}/file', [OffenceImageController::class, 'upload']);
+
+    // Watchlist
+    Route::get('/watchlist', [WatchlistController::class, 'index']);
+    Route::post('/watchlist/{vehicle}/sighting', [WatchlistController::class, 'sighting']);
 });
