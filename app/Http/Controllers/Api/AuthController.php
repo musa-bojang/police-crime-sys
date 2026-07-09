@@ -89,6 +89,7 @@ class AuthController extends Controller
             'service_number' => $user->service_number,
             'rank'           => $user->rank,
             'station'        => $user->station,
+            'email'          => $user->email,
             'roles'          => $user->getRoleNames(),
         ];
     }
