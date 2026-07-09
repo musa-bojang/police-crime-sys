@@ -89,6 +89,41 @@ class OffencesTable
                 AuditLog::record('offence.dismissed', $record);
                 Notification::make()->title('Offence dismissed')->send();
             }),
+
+            Action::make('addToWatchlist')
+    ->label('Add to watchlist')
+    ->icon('heroicon-o-flag')
+    ->color('danger')
+    ->requiresConfirmation()
+    ->modalHeading('Add this vehicle to the watchlist?')
+    ->modalDescription(fn (Offence $record) =>
+        'Plate '.($record->vehicle_plate ?? '—').' will be flagged as wanted.')
+    ->visible(fn (Offence $record) =>
+        $record->driver_fled
+        && filled($record->vehicle_plate)
+        && ! \App\Models\WatchlistVehicle::where('source_offence_id', $record->id)->exists())
+    ->action(function (Offence $record) {
+        $vehicle = \App\Models\WatchlistVehicle::create([
+            'plate'             => $record->vehicle_plate,
+            'vehicle_make'      => $record->vehicle_make,
+            'vehicle_color'     => $record->vehicle_color,
+            'vehicle_type'      => $record->vehicle_type,
+            'reason'            => 'Fled the scene — '
+                .ucfirst(str_replace('_', ' ', $record->offence_type))
+                .' on '.$record->occurred_at->format('d M Y').'.',
+            'severity'          => 'wanted',
+            'created_by'        => auth()->id(),
+            'source_offence_id' => $record->id,
+        ]);
+        \App\Models\AuditLog::record('watchlist.created_from_offence', $vehicle, [
+            'offence_id' => $record->id,
+        ]);
+        \Filament\Notifications\Notification::make()
+            ->title('Added to watchlist')
+            ->body('Set the severity and instructions in the Watchlist section.')
+            ->success()->send();
+    }),
+    
     ]);
     }
 }
