@@ -73,14 +73,19 @@ class OffenceSyncController extends Controller
             }
 
             // The server has already moved this past submission (a supervisor
-            // acted on it) — it's read-only now. Tell the client to sync down.
+            // acted on it) — the record is read-only now. But evidence can
+            // still arrive: register any NEW image metadata so the device can
+            // upload photos even for an already-reviewed record.
             if ($existing && ! in_array($existing->status, [OffenceStatus::Draft, OffenceStatus::Submitted], true)) {
+                $pendingImages = $this->registerImages($existing, $payload['images'] ?? [], $officer);
+
                 return [
                     'id'               => $existing->id,
                     'status'           => 'conflict',
                     'reference_number' => $existing->reference_number,
                     'server_status'    => $existing->status->value,
                     'version'          => $existing->version,
+                    'pending_images'   => $pendingImages,
                 ];
             }
 
@@ -121,32 +126,7 @@ class OffenceSyncController extends Controller
             $offence->save();
 
             // Register image metadata rows as "pending" — files arrive separately.
-            $pendingImages = [];
-            foreach ($payload['images'] ?? [] as $img) {
-                $image = $offence->images()->withTrashed()->find($img['id'])
-                    ?? $offence->images()->make(['id' => $img['id']]);
-
-                // Never touch an already-verified photo.
-                if ($image->exists && $image->status === ImageStatus::Verified) {
-                    continue;
-                }
-
-                $image->fill([
-                    'officer_id'  => $officer->id,
-                    'device_id'   => $img['device_id'] ?? null,
-                    'sha256_hash' => strtolower($img['sha256_hash']),
-                    'mime_type'   => $img['mime_type'] ?? null,
-                    'file_size'   => $img['file_size'] ?? null,
-                    'latitude'    => $img['latitude'] ?? null,
-                    'longitude'   => $img['longitude'] ?? null,
-                    'captured_at' => $img['captured_at'] ?? now(),
-                    'status'      => ImageStatus::Pending,
-                ]);
-                $image->offence_id = $offence->id;
-                $image->save();
-
-                $pendingImages[] = $image->id;
-            }
+            $pendingImages = $this->registerImages($offence, $payload['images'] ?? [], $officer);
 
             AuditLog::record($isNew ? 'offence.created' : 'offence.updated', $offence);
 
@@ -159,6 +139,45 @@ class OffenceSyncController extends Controller
                 'pending_images'   => $pendingImages,
             ];
         });
+    }
+
+    /**
+     * Register image metadata rows as "pending" for an offence — the binary
+     * files arrive separately via the upload endpoint. Shared by the accepted
+     * path AND the conflict path, so evidence can always reach the server even
+     * for a record a supervisor has already reviewed. Never touches an
+     * already-verified photo.
+     */
+    private function registerImages(Offence $offence, array $images, $officer): array
+    {
+        $pendingImages = [];
+
+        foreach ($images as $img) {
+            $image = $offence->images()->withTrashed()->find($img['id'])
+                ?? $offence->images()->make(['id' => $img['id']]);
+
+            if ($image->exists && $image->status === ImageStatus::Verified) {
+                continue;
+            }
+
+            $image->fill([
+                'officer_id'  => $officer->id,
+                'device_id'   => $img['device_id'] ?? null,
+                'sha256_hash' => strtolower($img['sha256_hash']),
+                'mime_type'   => $img['mime_type'] ?? null,
+                'file_size'   => $img['file_size'] ?? null,
+                'latitude'    => $img['latitude'] ?? null,
+                'longitude'   => $img['longitude'] ?? null,
+                'captured_at' => $img['captured_at'] ?? now(),
+                'status'      => ImageStatus::Pending,
+            ]);
+            $image->offence_id = $offence->id;
+            $image->save();
+
+            $pendingImages[] = $image->id;
+        }
+
+        return $pendingImages;
     }
 
     /**
