@@ -15,6 +15,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class UserResource extends Resource
 {
@@ -58,4 +59,18 @@ class UserResource extends Resource
 {
     return auth()->user()?->hasRole('admin') ?? false;
 }
+
+    /**
+     * Accounts are never deleted — only deactivated. Deletion breaks
+     * evidence/audit links and risks self-lockout. Off-boarding = is_active.
+     */
+    public static function canDelete(Model $record): bool
+    {
+        return false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return false;
+    }
 }
