@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\OffenceImageController;
 use App\Http\Controllers\Api\OffenceSyncController;
+use App\Http\Controllers\Api\StatsController;
 use App\Http\Controllers\Api\WatchlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,7 @@ Route::post('/login', [AuthController::class, 'login'])
 // Protected — everything here needs a valid Sanctum bearer token.
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/me/stats', [StatsController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
 
     // Sync
